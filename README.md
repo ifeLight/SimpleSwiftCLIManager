@@ -1,31 +1,37 @@
-# CLIManager
+# SimpleSwiftCLIManager
 
 A flexible Swift package for building command-line interfaces with modular operation management and ArgumentParser integration.
 
 ## Overview
 
-CLIManager is a Swift package that provides a clean, modular architecture for building CLI applications. It separates the core CLI management logic from the executable entry point, making it easy to create, test, and maintain command-line tools.
+SimpleSwiftCLIManager is a Swift package that provides a clean, modular architecture for building CLI applications. It separates the core CLI management logic from the executable entry points, making it easy to create, test, and maintain command-line tools with both structured command parsing and string-based command handling.
 
 ## Project Structure
 
 ```
 Sources/
 ├── CLIManager/
-│   └── CLIManager.swift        # Core module with CLIManager class and Command struct
-└── CLIManagerExecutable/
-    └── main.swift              # Executable entry point
+│   ├── CLIManager.swift        # Core module with CLIManager class and Command struct
+│   └── Enums.swift            # Action and Resource enums
+├── CLIManagerExecutable/
+│   └── main.swift             # Standard ArgumentParser executable entry point
+└── StringCommandExecutable/
+    └── main.swift             # String-based command parsing executable
 Tests/
-└── SwiftExampleTests/
-    └── SwiftExampleTests.swift # Unit tests
+└── SimpleSwiftCLIManagerTests/
+    └── SimpleSwiftCLIManagerTests.swift # Unit tests
 ```
 
 ## Features
 
-- **Modular Design**: Separate CLI logic from executable entry point
-- **Operation Registration**: Dynamic registration of operations and sub-operations
-- **ArgumentParser Integration**: Built-in support for command-line argument parsing
+- **Modular Design**: Separate CLI logic from executable entry points
+- **Dual Execution Modes**: Support for both ArgumentParser-based and string-based command parsing
+- **Operation Registration**: Dynamic registration of action/resource combinations
+- **ArgumentParser Integration**: Built-in support for structured command-line argument parsing
+- **String Command Processing**: Parse and execute commands from string input
 - **Testable Architecture**: Easy to unit test CLI operations
-- **Type-Safe Operations**: Enum-based operation and sub-operation definitions
+- **Type-Safe Operations**: Enum-based Action and Resource definitions
+- **Rich Operation Arguments**: Support for optional parameters like data, pagination, verbose output, etc.
 
 ## Installation
 
@@ -63,27 +69,34 @@ import CLIManager
 ```swift
 let cliManager = CLIManager()
 
-// Register operations
-cliManager.registerOperation(.add, .add) { operationArgs in
+// Register operations using Action and Resource enums
+cliManager.registerOperation(.add, .numbers) { operationArgs in
     let numbers = operationArgs.values.compactMap { Int($0) }
     let result = numbers.reduce(0, +)
     print("Result: \(result)")
 }
 
-cliManager.registerOperation(.multiply, .multiply) { operationArgs in
+cliManager.registerOperation(.multiply, .numbers) { operationArgs in
     let numbers = operationArgs.values.compactMap { Int($0) }
     let result = numbers.reduce(1, *)
     print("Result: \(result)")
 }
 ```
 
-3. **Set up the CLI and run**:
+### Execution Modes
+
+This package provides two different executable entry points:
+
+#### 1. ArgumentParser Mode (CLIManagerExecutable)
+
+For structured command-line argument parsing:
 
 ```swift
 import ArgumentParser
+import CLIManager
 
 @main
-struct MyCLI {
+struct CLIExecutable {
     static func main() async {
         // Set up the CLI manager
         await MainActor.run {
@@ -98,61 +111,103 @@ struct MyCLI {
 func setupCLIManager() -> CLIManager {
     let cliManager = CLIManager()
     
-    cliManager.registerOperation(.add, .add) { operationArgs in
-        let numbers = operationArgs.values.compactMap { Int($0) }
-        let result = numbers.reduce(0, +)
-        print("Addition result: \(result)")
-    }
-    
-    cliManager.registerOperation(.subtract, .subtract) { operationArgs in
-        let numbers = operationArgs.values.compactMap { Int($0) }
-        guard numbers.count >= 2 else {
-            print("Need at least 2 numbers for subtraction")
-            return
+    // Dynamically register all combinations of Action and Resource
+    for action in Action.allCases {
+        for resource in Resource.allCases {
+            cliManager.registerOperation(action, resource) { operationArgs in
+                print("Action: \(operationArgs.action), Resource: \(operationArgs.resource)")
+                print("Values: \(operationArgs.values)")
+            }
         }
-        let result = numbers.dropFirst().reduce(numbers.first!) { $0 - $1 }
-        print("Subtraction result: \(result)")
     }
     
     return cliManager
 }
 ```
 
-### Available Operations and Sub-Operations
+#### 2. String Command Mode (StringCommandExecutable)
 
-The CLIManager comes with predefined operation types:
+For parsing commands from string input with custom logic:
 
 ```swift
-public enum Operation: String, ExpressibleByArgument, Hashable {
-    case add
-    case subtract
-    case multiply
-    case divide
-}
+import CLIManager
+import Foundation
 
-public enum SubOperation: String, ExpressibleByArgument, Hashable {
-    case add
-    case subtract
-    case multiply
-    case divide
+@main
+struct StringCommandExecutable {
+    static func main() async {
+        let cliManager = CLIManager()
+        
+        // Register specific operations with custom implementations
+        cliManager.registerOperation(.add, .numbers) { args in
+            let numbers = args.values.compactMap { Int($0) }
+            let result = numbers.reduce(0, +)
+            print("Add Numbers Result: \(result)")
+        }
+        
+        cliManager.registerOperation(.get, .camera) { args in
+            print("Getting camera info: \(args.data ?? "No data")")
+        }
+        
+        // Parse command from string or command line arguments
+        let input = CommandLine.arguments.dropFirst().joined(separator: " ")
+        let argsList = input.isEmpty ? ["add", "numbers", "1", "2", "3"] : input.split(separator: " ").map(String.init)
+        
+        let command = try Command.parse(argsList)
+        let args = makeCLICallbackArgs(from: command)
+        cliManager.executeOperation(args: args)
+    }
 }
 ```
 
-### Custom Operation Arguments
+### Available Actions and Resources
+
+The CLIManager comes with predefined Action and Resource enums:
+
+```swift
+public enum Action: String, ExpressibleByArgument, Hashable, CaseIterable {
+    case add
+    case subtract
+    case multiply
+    case divide
+    case get
+    case rotate
+    case search
+}
+
+public enum Resource: String, ExpressibleByArgument, Hashable, CaseIterable {
+    case numbers
+    case camera
+    case stars
+    case moon
+}
+```
+
+### Operation Arguments
 
 Operations receive arguments through the `OperationArgs` protocol:
 
 ```swift
 public protocol OperationArgs {
-    var operation: Operation { get }
-    var subOperation: SubOperation { get }
+    var action: Action { get }
+    var resource: Resource { get }
     var values: [String] { get }
+    var data: String? { get }
+    var page: Int? { get }
+    var skip: Int? { get }
+    var verbose: Bool? { get }
+    var output: String? { get }
+    var silent: Bool { get }
 }
 ```
 
-## Example: Building a Calculator CLI
+The `CLICallbackArgs` struct implements this protocol and provides all the rich functionality for command handling.
 
-Here's a complete example of building a calculator CLI:
+## Example: Practical Usage Examples
+
+Here are some practical examples showing how to use the different execution modes:
+
+### Calculator CLI (ArgumentParser Mode)
 
 ```swift
 import CLIManager
@@ -171,50 +226,57 @@ struct CalculatorCLI {
 func setupCalculator() -> CLIManager {
     let cliManager = CLIManager()
     
-    // Addition
-    cliManager.registerOperation(.add, .add) { args in
+    // Math operations on numbers
+    cliManager.registerOperation(.add, .numbers) { args in
         let numbers = args.values.compactMap { Double($0) }
         let result = numbers.reduce(0, +)
-        print("📊 Addition: \(numbers.map { String($0) }.joined(separator: " + ")) = \(result)")
+        print("Addition Result: \(result)")
     }
     
-    // Subtraction
-    cliManager.registerOperation(.subtract, .subtract) { args in
+    cliManager.registerOperation(.subtract, .numbers) { args in
         let numbers = args.values.compactMap { Double($0) }
-        guard numbers.count >= 2 else {
-            print("❌ Error: Need at least 2 numbers for subtraction")
-            return
-        }
-        let result = numbers.dropFirst().reduce(numbers.first!) { $0 - $1 }
-        print("📊 Subtraction: \(numbers.map { String($0) }.joined(separator: " - ")) = \(result)")
+        let result = numbers.dropFirst().reduce(numbers.first ?? 0) { $0 - $1 }
+        print("Subtraction Result: \(result)")
     }
     
-    // Multiplication
-    cliManager.registerOperation(.multiply, .multiply) { args in
+    cliManager.registerOperation(.multiply, .numbers) { args in
         let numbers = args.values.compactMap { Double($0) }
         let result = numbers.reduce(1, *)
-        print("📊 Multiplication: \(numbers.map { String($0) }.joined(separator: " × ")) = \(result)")
+        print("Multiplication Result: \(result)")
     }
     
-    // Division
-    cliManager.registerOperation(.divide, .divide) { args in
-        let numbers = args.values.compactMap { Double($0) }
-        guard numbers.count >= 2 else {
-            print("❌ Error: Need at least 2 numbers for division")
-            return
+    // Camera operations
+    cliManager.registerOperation(.get, .camera) { args in
+        print("Getting camera info: \(args.data ?? "default settings")")
+        if args.verbose == true {
+            print("Verbose mode: Showing detailed camera information")
         }
-        
-        let result = numbers.dropFirst().reduce(numbers.first!) { dividend, divisor in
-            guard divisor != 0 else {
-                print("❌ Error: Division by zero")
-                return dividend
-            }
-            return dividend / divisor
-        }
-        print("📊 Division: \(numbers.map { String($0) }.joined(separator: " ÷ ")) = \(result)")
     }
     
     return cliManager
+}
+```
+
+### String-Based Command Processing
+
+The StringCommandExecutable shows how to handle commands from string input, which is useful for:
+- Interactive command shells
+- Processing commands from configuration files
+- API endpoints that accept command strings
+
+```swift
+// Example from StringCommandExecutable implementation
+cliManager.registerOperation(.add, .numbers) { args in
+    let numbers = args.values.compactMap { Int($0) }
+    let result = numbers.reduce(0, +)
+    print("Add Numbers Result: \(result)")
+}
+
+cliManager.registerOperation(.search, .moon) { args in
+    print("Searching moon with values: \(args.values)")
+    if let data = args.data {
+        print("Using search criteria: \(data)")
+    }
 }
 ```
 
@@ -222,52 +284,93 @@ func setupCalculator() -> CLIManager {
 
 Once built, you can run your CLI with:
 
+#### ArgumentParser Mode (CLIManagerExecutable)
 ```bash
-# Addition
-swift run YourCLI add add 10 5 3
-# Output: 📊 Addition: 10.0 + 5.0 + 3.0 = 18.0
+# Math operations
+swift run CLIManagerExecutable add numbers 10 5 3
+# Output: Action: add, Resource: numbers, Values: ["10", "5", "3"]
 
-# Subtraction  
-swift run YourCLI subtract subtract 20 5 2
-# Output: 📊 Subtraction: 20.0 - 5.0 - 2.0 = 13.0
+# With optional parameters
+swift run CLIManagerExecutable get camera --data "ISO800" --verbose
+# Output: Action: get, Resource: camera, Values: []
+#         Data: ISO800
+#         Verbose mode enabled
 
-# Multiplication
-swift run YourCLI multiply multiply 4 3 2
-# Output: 📊 Multiplication: 4.0 × 3.0 × 2.0 = 24.0
+# Other resource combinations
+swift run CLIManagerExecutable rotate stars "Orion" "Polaris"
+swift run CLIManagerExecutable search moon --page 1 --skip 10
+```
 
-# Division
-swift run YourCLI divide divide 100 5 2
-# Output: 📊 Division: 100.0 ÷ 5.0 ÷ 2.0 = 10.0
+#### String Command Mode (StringCommandExecutable)
+```bash
+# Math operations with actual calculations
+swift run StringCommandExecutable add numbers 1 2 3 4
+# Output: Add Numbers Result: 10
+
+# Default behavior (runs "add numbers 1 2 3")  
+swift run StringCommandExecutable
+# Output: Add Numbers Result: 6
+
+# Camera operations
+swift run StringCommandExecutable get camera
+# Output: Getting camera info: No data
+
+# Astronomy operations
+swift run StringCommandExecutable search moon "crater" "maria"
+# Output: Searching moon with values: ["crater", "maria"]
 ```
 
 ## Testing
 
-The CLIManager is designed to be easily testable:
+The CLIManager is designed to be easily testable. Here are examples from the test suite:
 
 ```swift
 import Testing
 @testable import CLIManager
 
-@Test("Test addition operation")
-func testAddition() async throws {
+@Test("Addition operation should print correct values")
+func testAdditionOperation() async throws {
+    // Arrange
     let cliManager = CLIManager()
-    var result = ""
-    
-    cliManager.registerOperation(.add, .add) { args in
-        let numbers = args.values.compactMap { Int($0) }
-        let sum = numbers.reduce(0, +)
-        result = "Sum: \(sum)"
+    var output = ""
+    cliManager.registerOperation(.add, .numbers) { args in
+        output = "Performing addition with values: \(args.values)"
     }
+    let args = CLICallbackArgs(action: .add, resource: .numbers, values: ["2", "3"])
     
-    struct TestArgs: OperationArgs {
-        var operation: Operation = .add
-        var subOperation: SubOperation = .add
-        var values: [String] = ["5", "10", "15"]
-    }
+    // Act
+    cliManager.executeOperation(args: args)
     
-    cliManager.executeOperation(.add, .add, args: TestArgs())
-    #expect(result == "Sum: 30")
+    // Assert
+    #expect(output == "Performing addition with values: [\"2\", \"3\"]")
 }
+
+@Test("Command should execute and print output")
+func testCommandExecution() async throws {
+    let cliManager = CLIManager()
+    var output = ""
+    cliManager.registerOperation(.add, .numbers) { args in
+        output = "Performing addition with values: \(args.values)"
+    }
+    
+    // Set cliManager on MainActor
+    await MainActor.run {
+        Command.cliManager = cliManager
+    }
+
+    let command = try Command.parse(["add", "numbers", "2", "3"])
+    
+    // Act
+    try await command.run()
+    
+    // Assert
+    #expect(output == "Performing addition with values: [\"2\", \"3\"]")
+}
+```
+
+Run tests with:
+```bash
+swift test
 ```
 
 ## API Reference
@@ -278,8 +381,8 @@ The main class for managing CLI operations.
 
 #### Methods
 
-- `registerOperation(_:_:function:)` - Register a function for a specific operation and sub-operation
-- `executeOperation(_:_:args:)` - Execute a registered operation with the given arguments
+- `registerOperation(_:_:function:)` - Register a function for a specific Action and Resource combination
+- `executeOperation(args:)` - Execute a registered operation with the given arguments
 
 ### Command
 
@@ -287,13 +390,31 @@ The ArgumentParser command struct that handles command-line parsing.
 
 #### Properties
 
-- `operation: Operation` - The operation to perform
-- `subOperation: SubOperation` - The sub-operation to perform  
+- `action: Action` - The action to perform
+- `resource: Resource` - The resource to perform the action on  
 - `values: [String]` - The values to use in the operation
+- `data: String?` - Optional data string
+- `page: Int?` - Optional page number for pagination
+- `skip: Int?` - Optional skip count for pagination
+- `verbose: Bool` - Enable verbose output
+- `output: String?` - Optional output string
+- `silent: Bool` - Suppress all output
+
+### Action Enum
+
+Available actions: `add`, `subtract`, `multiply`, `divide`, `get`, `rotate`, `search`
+
+### Resource Enum
+
+Available resources: `numbers`, `camera`, `stars`, `moon`
 
 ### OperationArgs Protocol
 
-Protocol defining the structure of operation arguments.
+Protocol defining the structure of operation arguments with rich parameter support.
+
+### CLICallbackArgs
+
+Struct implementing `OperationArgs` that provides all the functionality for handling command arguments and optional parameters.
 
 ## Requirements
 
