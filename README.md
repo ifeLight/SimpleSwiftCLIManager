@@ -312,11 +312,11 @@ swift run StringCommandExecutable
 # Output: Add Numbers Result: 6
 
 # Camera operations
-swift run StringCommandExecutable get camera
+swift run StringCommandExecutable "get camera"
 # Output: Getting camera info: No data
 
 # Astronomy operations
-swift run StringCommandExecutable search moon "crater" "maria"
+swift run StringCommandExecutable "search moon crater maria"
 # Output: Searching moon with values: ["crater", "maria"]
 ```
 
