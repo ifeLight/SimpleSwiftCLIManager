@@ -280,11 +280,15 @@ cliManager.registerOperation(.search, .moon) { args in
 }
 ```
 
-### Running the CLI
 
-Once built, you can run your CLI with:
+## Running the CLI
 
-#### ArgumentParser Mode (CLIManagerExecutable)
+You can run your CLI tool in two ways:
+
+### 1. Directly with Swift (Recommended for development)
+
+You can use `swift run CLIManagerExecutable` to run the CLI directly:
+
 ```bash
 # Math operations
 swift run CLIManagerExecutable add numbers 10 5 3
@@ -301,24 +305,31 @@ swift run CLIManagerExecutable rotate stars "Orion" "Polaris"
 swift run CLIManagerExecutable search moon --page 1 --skip 10
 ```
 
-#### String Command Mode (StringCommandExecutable)
-```bash
-# Math operations with actual calculations
-swift run StringCommandExecutable add numbers 1 2 3 4
-# Output: Add Numbers Result: 10
+### 2. Install as a Global Command (Recommended for users)
 
-# Default behavior (runs "add numbers 1 2 3")  
-swift run StringCommandExecutable
-# Output: Add Numbers Result: 6
+You can install your CLI tool globally using the provided `install.sh` script. This script wraps the `CLIManagerExecutable` and lets you run commands like `aos-cli add numbers 2 3` from anywhere on your system.
 
-# Camera operations
-swift run StringCommandExecutable "get camera"
-# Output: Getting camera info: No data
+**How to install:**
+1. Make the script executable:
+    ```sh
+    chmod +x install.sh
+    ```
+2. Run the script:
+    ```sh
+    ./install.sh
+    ```
+3. By default, the command will be installed as `/usr/local/bin/aos-cli`. You can change the command name by editing the `TARGET_NAME` variable in `install.sh` before running the script.
 
-# Astronomy operations
-swift run StringCommandExecutable "search moon crater maria"
-# Output: Searching moon with values: ["crater", "maria"]
+**Example usage:**
+```sh
+aos-cli add numbers 2 3
+aos-cli get camera --data "ISO800"
+aos-cli search moon crater maria
 ```
+
+---
+
+You do not need to know the full contents of the install script—just configure the `TARGET_NAME` variable to set your preferred command name.
 
 ## Testing
 
