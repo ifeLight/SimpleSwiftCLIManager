@@ -41,7 +41,7 @@ Add this package as a dependency in your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "your-repo-url", from: "1.0.0")
+    .package(url: "https://github.com/ifeLight/SimpleSwiftCLIManager.git", from: "1.0.0")
 ]
 ```
 
