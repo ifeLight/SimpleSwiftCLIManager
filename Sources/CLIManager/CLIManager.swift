@@ -1,54 +1,6 @@
 import ArgumentParser
 
-public typealias CLIAction = Action
-public typealias CLIResource = Resource
-public typealias CLIOperationCallback = (OperationArgs) -> Void
-
-public protocol OperationArgs {
-    var action: Action { get }
-    var resource: Resource { get }
-    var values: [String] { get }
-    var data: String? { get }
-    var page: Int? { get }
-    var skip: Int? { get }
-    var verbose: Bool? { get }
-    var output: String? { get }
-    var silent: Bool { get }
-}
-
-public class CLIManager {
-    public init() {}
-
-    public var operationFuncs: [Action: [Resource: CLIOperationCallback]] = [:]
-
-    public func registerOperation(
-        _ action: Action, _ resource: Resource,
-        function: @escaping CLIOperationCallback
-    ) {
-        if operationFuncs[action] == nil {
-            operationFuncs[action] = [:]
-        }
-        operationFuncs[action]?[resource] = function
-    }
-
-    public func executeOperation(
-        args: OperationArgs
-    ) {
-        let action = args.action
-        let resource = args.resource
-        guard let resources = operationFuncs[action],
-            let function = resources[resource]
-        else {
-            print("No function registered for \(action) \(resource)")
-            return
-        }
-        function(args)
-    }
-
-}
-
-@available(macOS 10.15, macCatalyst 13, iOS 13, tvOS 13, watchOS 6, *)
-public struct CLICallbackArgs: OperationArgs {
+public struct CLICallbackArgs {
     public var action: Action
     public var resource: Resource
     public var values: [String]
@@ -80,6 +32,42 @@ public struct CLICallbackArgs: OperationArgs {
         self.output = output
         self.silent = silent
     }
+}
+
+public typealias CLIAction = Action
+public typealias CLIResource = Resource
+public typealias CLIOperationCallback = (CLICallbackArgs) -> Any?
+public typealias CLIOperationArgs = CLICallbackArgs
+
+public class CLIManager {
+    public init() {}
+
+    public var operationFuncs: [Action: [Resource: CLIOperationCallback]] = [:]
+
+    public func registerOperation(
+        _ action: Action, _ resource: Resource,
+        _ function: @escaping CLIOperationCallback
+    ) {
+        if operationFuncs[action] == nil {
+            operationFuncs[action] = [:]
+        }
+        operationFuncs[action]?[resource] = function
+    }
+
+    public func executeOperation(
+        args: CLICallbackArgs
+    ) -> Any? {
+        let action = args.action
+        let resource = args.resource
+        guard let resources = operationFuncs[action],
+            let function = resources[resource]
+        else {
+            print("No function registered for \(action) \(resource)")
+            return nil
+        }
+        return function(args)
+    }
+
 }
 
 public func makeCLICallbackArgs(from command: Command) -> CLICallbackArgs {
@@ -156,6 +144,6 @@ public struct Command: AsyncParsableCommand {
         guard let manager = Command.cliManager else {
             throw ValidationError("CLIManager is not initialized.")
         }
-        manager.executeOperation(args: args)
+        _ = manager.executeOperation(args: args)
     }
 }
