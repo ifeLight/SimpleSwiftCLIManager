@@ -1,8 +1,5 @@
 #!/bin/zsh
 
-echo "Installed as /usr/local/bin/$TARGET_NAME"
-echo "You can now run: $TARGET_NAME add numbers 2 3"
-
 # Build the project
 swift build || { echo "Build failed"; exit 1; }
 
