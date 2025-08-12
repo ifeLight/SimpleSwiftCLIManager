@@ -285,10 +285,12 @@ cliManager.registerOperation(.search, .moon) { args in
 
 You can run your CLI tool in two ways:
 
+
 ### 1. Directly with Swift (Recommended for development)
 
-You can use `swift run CLIManagerExecutable` to run the CLI directly:
+You can use `swift run CLIManagerExecutable` or `swift run StringCommandExecutable` to run the CLI directly:
 
+#### CLIManagerExecutable (ArgumentParser Mode)
 ```bash
 # Math operations
 swift run CLIManagerExecutable add numbers 10 5 3
@@ -303,6 +305,25 @@ swift run CLIManagerExecutable get camera --data "ISO800" --verbose
 # Other resource combinations
 swift run CLIManagerExecutable rotate stars "Orion" "Polaris"
 swift run CLIManagerExecutable search moon --page 1 --skip 10
+```
+
+#### StringCommandExecutable (String Command Mode)
+```bash
+# Math operations with actual calculations
+swift run StringCommandExecutable add numbers 1 2 3 4
+# Output: Add Numbers Result: 10
+
+# Default behavior (runs "add numbers 1 2 3")
+swift run StringCommandExecutable
+# Output: Add Numbers Result: 6
+
+# Camera operations
+swift run StringCommandExecutable get camera
+# Output: Getting camera info: No data
+
+# Astronomy operations
+swift run StringCommandExecutable search moon crater maria
+# Output: Searching moon with values: ["crater", "maria"]
 ```
 
 ### 2. Install as a Global Command (Recommended for users)
