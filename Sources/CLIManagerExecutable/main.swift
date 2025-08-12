@@ -30,10 +30,40 @@ public func setupCLIManager() -> CLIManager {
         }
     }
 
+    func calcCallBack(args: CLICallbackArgs) -> Any? {
+        let numbers = args.values.compactMap { Double($0) }
+        let result: Double
+        if numbers.isEmpty {
+            result = 0
+        } else {
+            switch args.action {
+            case .add:
+                result = numbers.reduce(0, +)
+            case .subtract:
+                result = numbers.reduce(numbers.first ?? 0) { $0 - $1 }
+            case .multiply:
+                result = numbers.reduce(1, *)
+            case .divide:
+                result = numbers.dropFirst().reduce(numbers.first ?? 1) { $0 / $1 }
+            default:
+                print("Unsupported action: \(args.action)")
+                return nil
+            }
+        }
+        print("Calculation Result: \(result)")
+        return result
+    }
+
     // Dynamically register all combinations of Action and Resource
     for action in Action.allCases {
         for resource in Resource.allCases {
-            cliManager.registerOperation(action, resource, cliCallback)
+            if action == .add || action == .subtract || action == .multiply
+                || action == .divide && resource == .numbers
+            {
+                cliManager.registerOperation(action, resource, calcCallBack)
+            } else {
+                cliManager.registerOperation(action, resource, cliCallback)
+            }
         }
     }
 
