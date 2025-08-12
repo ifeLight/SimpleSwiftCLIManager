@@ -2,6 +2,18 @@ import Testing
 
 @testable import CLIManager
 
+@Test("executeOperation should return the correct value")
+func testExecuteOperationReturnValue() async throws {
+    let cliManager = CLIManager()
+    cliManager.registerOperation(.add, .numbers) { args in
+        let numbers = args.values.compactMap { Int($0) }
+        return numbers.reduce(0, +)
+    }
+    let args = CLICallbackArgs(action: .add, resource: .numbers, values: ["2", "3", "5"])
+    let result = cliManager.executeOperation(args: args)
+    #expect(result as? Int == 10)
+}
+
 @Test("Addition operation should print correct values")
 func testAdditionOperation() async throws {
     // Arrange
@@ -11,7 +23,7 @@ func testAdditionOperation() async throws {
         output = "Performing addition with values: \(args.values)"
     }
     let args = CLICallbackArgs(action: .add, resource: .numbers, values: ["2", "3"])
-    cliManager.executeOperation(args: args)
+    _ = cliManager.executeOperation(args: args)
     #expect(output == "Performing addition with values: [\"2\", \"3\"]")
 }
 
@@ -23,7 +35,7 @@ func testCLIManagerExecution() async throws {
         output = "Performing addition with values: \(args.values)"
     }
     let args = CLICallbackArgs(action: .add, resource: .numbers, values: ["2", "3"])
-    cliManager.executeOperation(args: args)
+    _ = cliManager.executeOperation(args: args)
     #expect(output == "Performing addition with values: [\"2\", \"3\"]")
 }
 
