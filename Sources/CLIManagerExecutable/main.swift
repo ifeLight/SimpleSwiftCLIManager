@@ -6,32 +6,34 @@ import CLIManager
 public func setupCLIManager() -> CLIManager {
     let cliManager = CLIManager()
 
+    func cliCallback(operationArgs: CLICallbackArgs) {
+        print(
+            "Action: \(operationArgs.action), Resource: \(operationArgs.resource), Values: \(operationArgs.values)"
+        )
+        if let data = operationArgs.data {
+            print("Data: \(data)")
+        }
+        if let page = operationArgs.page {
+            print("Page: \(page)")
+        }
+        if let skip = operationArgs.skip {
+            print("Skip: \(skip)")
+        }
+        if let verbose = operationArgs.verbose, verbose {
+            print("Verbose mode enabled")
+        }
+        if let output = operationArgs.output {
+            print("Output: \(output)")
+        }
+        if operationArgs.silent {
+            print("Silent mode enabled")
+        }
+    }
+
     // Dynamically register all combinations of Action and Resource
     for action in Action.allCases {
         for resource in Resource.allCases {
-            cliManager.registerOperation(action, resource) { operationArgs in
-                print(
-                    "Action: \(operationArgs.action), Resource: \(operationArgs.resource), Values: \(operationArgs.values)"
-                )
-                if let data = operationArgs.data {
-                    print("Data: \(data)")
-                }
-                if let page = operationArgs.page {
-                    print("Page: \(page)")
-                }
-                if let skip = operationArgs.skip {
-                    print("Skip: \(skip)")
-                }
-                if let verbose = operationArgs.verbose, verbose {
-                    print("Verbose mode enabled")
-                }
-                if let output = operationArgs.output {
-                    print("Output: \(output)")
-                }
-                if operationArgs.silent {
-                    print("Silent mode enabled")
-                }
-            }
+            cliManager.registerOperation(action, resource, cliCallback)
         }
     }
 
