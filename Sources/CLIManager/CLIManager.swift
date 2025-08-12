@@ -98,7 +98,11 @@ public func makeCLICallbackArgs(from command: Command) -> CLICallbackArgs {
 
 public struct Command: AsyncParsableCommand {
     public static let configuration = CommandConfiguration(
-        abstract: "A command-line tool for performing operations."
+        commandName: "aos-cli",
+        abstract: "A command-line tool for performing operations.",
+        discussion: """
+            This tool allows you to perform various operations on different resources.
+            """
     )
 
     @Argument(help: "The action to perform.")
