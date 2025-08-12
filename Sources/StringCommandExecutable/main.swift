@@ -9,36 +9,42 @@ func setupCLIManager() -> CLIManager {
         let numbers = args.values.compactMap { Int($0) }
         let result = numbers.reduce(0, +)
         print("Add Numbers Result: \(result)")
+        return result
     }
-
     cliManager.registerOperation(.subtract, .numbers) { args in
         let numbers = args.values.compactMap { Int($0) }
         let result = numbers.dropFirst().reduce(numbers.first ?? 0) { $0 - $1 }
         print("Subtract Numbers Result: \(result)")
+        return result
     }
-
     cliManager.registerOperation(.multiply, .numbers) { args in
         let numbers = args.values.compactMap { Int($0) }
         let result = numbers.reduce(1, *)
         print("Multiply Numbers Result: \(result)")
+        return result
     }
-
     cliManager.registerOperation(.divide, .numbers) { args in
         let numbers = args.values.compactMap { Double($0) }
         let result = numbers.dropFirst().reduce(numbers.first ?? 0) { $0 / $1 }
         print("Divide Numbers Result: \(result)")
+        return result
     }
-
     cliManager.registerOperation(.get, .camera) { args in
         print("Getting camera info: \(args.data ?? "No data")")
+        return args.data
     }
-
     cliManager.registerOperation(.rotate, .stars) { args in
         print("Rotating stars with values: \(args.values)")
+        return args.values
+    }
+    cliManager.registerOperation(.search, .moon) { args in
+        print("Searching moon with values: \(args.values)")
+        return args.values
     }
 
     cliManager.registerOperation(.search, .moon) { args in
         print("Searching moon with values: \(args.values)")
+        return args.values
     }
 
     return cliManager
@@ -74,7 +80,7 @@ struct StringCommandExecutable {
 
         if let command = command, let cliManager = Command.cliManager {
             let args = makeCLICallbackArgs(from: command)
-            cliManager.executeOperation(args: args)
+            _ = cliManager.executeOperation(args: args)
         } else {
             print("Command or CLI Manager is not set up correctly.")
         }
